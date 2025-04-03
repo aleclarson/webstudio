@@ -5,7 +5,7 @@ import { createReadableStreamFromReadable } from "@remix-run/node";
 import type { LoaderFunctionArgs } from "@remix-run/server-runtime";
 import { wsImageLoader } from "@webstudio-is/image";
 import env from "~/env/env.server";
-import { getImageNameAndType } from "~/builder/shared/assets/asset-utils";
+import { getImageType } from "~/builder/shared/assets/asset-utils";
 import { fileUploadPath } from "~/shared/asset-client";
 
 const ImageParams = z.object({
@@ -114,7 +114,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
   }
 
-  const [contentType] = getImageNameAndType(name) ?? ["image/png"];
+  const contentType = getImageType(name) ?? "image/png";
 
   return new Response(
     createReadableStreamFromReadable(createReadStream(filePath)),

@@ -2,7 +2,7 @@ import type { Asset, FontAsset, ImageAsset } from "@webstudio-is/sdk";
 import { nanoid } from "nanoid";
 import type { UploadingFileData } from "~/shared/nano-states";
 
-const extensionToMime = new Map([
+const imageExtensionToMime = new Map([
   [".gif", "image/gif"],
   [".ico", "image/x-icon"],
   [".jpeg", "image/jpeg"],
@@ -12,42 +12,119 @@ const extensionToMime = new Map([
   [".webp", "image/webp"],
 ] as const);
 
-const extensions = [...extensionToMime.keys()];
+const imageExtensions = [...imageExtensionToMime.keys()];
 
-export const imageMimeTypes = [...extensionToMime.values()];
+export const imageMimeTypes = [...imageExtensionToMime.values()];
 
-export const getImageNameAndType = (fileName: string) => {
-  const extension = extensions.find((ext) => fileName.endsWith(ext));
+export type ImageMimeType = (typeof imageMimeTypes)[number];
+export type ImageExtension = (typeof imageExtensions)[number];
 
-  if (extension == null) {
-    return;
+export function getImageExtensionForMimeType(
+  mimeType: ImageMimeType
+): ImageExtension;
+
+export function getImageExtensionForMimeType(
+  mimeType: string
+): ImageExtension | undefined;
+
+export function getImageExtensionForMimeType(mimeType: string) {
+  const index = imageMimeTypes.indexOf(mimeType as any);
+  return index > -1 ? imageExtensions[index] : undefined;
+}
+
+export function getImageNameAndType(
+  url: string | URL,
+  defaultExtension: (typeof imageExtensions)[number]
+): [fileName: string, mimeType: string];
+
+export function getImageNameAndType(
+  url: string | URL,
+  defaultExtension?: (typeof imageExtensions)[number]
+): [fileName: string | undefined, mimeType: string | undefined];
+
+export function getImageNameAndType(
+  url: string | URL,
+  defaultExtension?: (typeof imageExtensions)[number]
+): [fileName: string | undefined, mimeType: string | undefined] {
+  let extension: (typeof imageExtensions)[number] | undefined;
+
+  if (typeof url === "string") {
+    extension =
+      imageExtensions.find((ext) => url.endsWith(ext)) ?? defaultExtension;
+
+    return extension
+      ? [url, imageExtensionToMime.get(extension)]
+      : [undefined, undefined];
   }
 
-  return [extensionToMime.get(extension)!, fileName] as const;
+  const basename = url.pathname.split("/").at(-1) ?? "";
+  const contentDispositionKey = /\bcontent-disposition\b/i;
+  const contentTypeKey = /\bcontent-type\b/i;
+
+  let fileName: string | undefined;
+  let mimeType: string | undefined;
+  extension = imageExtensions.find((ext) => {
+    let foundInSearchParams = false;
+
+    // Check every search param in case a filename and/or mime type is specified.
+    for (const key of url.searchParams.keys()) {
+      const value = url.searchParams.get(key)!;
+      if (!fileName && contentDispositionKey.test(key)) {
+        const fileNameMatch = value.match(/\bfilename=(?:"([^"]+)"|([^;]+))/i);
+        if (fileNameMatch) {
+          fileName = fileNameMatch[1] ?? fileNameMatch[2] ?? "";
+        }
+      } else if (!mimeType && contentTypeKey.test(key)) {
+        const mimeTypeMatch = value.match(/\b(image\/[\w-+]+)/i);
+        if (mimeTypeMatch) {
+          mimeType = mimeTypeMatch[1];
+        }
+      } else if (!foundInSearchParams && value.endsWith(ext)) {
+        foundInSearchParams = true;
+      }
+    }
+
+    if (basename.endsWith(ext)) {
+      if (!fileName?.endsWith(ext)) {
+        fileName = basename;
+      }
+      return true;
+    }
+
+    return Boolean(
+      foundInSearchParams ||
+        fileName?.endsWith(ext) ||
+        mimeType === imageExtensionToMime.get(ext)
+    );
+  });
+
+  extension ??= defaultExtension;
+
+  // Trust the extension over the mime type.
+  const impliedMimeType = extension && imageExtensionToMime.get(extension);
+  if (impliedMimeType) {
+    mimeType = impliedMimeType;
+  }
+
+  return mimeType
+    ? [fileName ?? `${nanoid()}.${extension}`, mimeType]
+    : [undefined, undefined];
+}
+
+export const getImageName = (file: File | URL) => {
+  if (file instanceof File) {
+    return file.name;
+  }
+
+  return getImageNameAndType(file)[0];
 };
 
-const extractImageNameAndMimeTypeFromUrl = (url: URL) => {
-  const nameFromPath = url.pathname
-    .split("/")
-    .map(getImageNameAndType)
-    .filter(Boolean)[0];
-
-  if (nameFromPath != null) {
-    return nameFromPath;
+export const getImageType = (file: File | URL | string) => {
+  if (file instanceof File) {
+    return file.type;
   }
 
-  const nameFromSearchParams = [...url.searchParams.values()]
-    .map(getImageNameAndType)
-    .filter(Boolean)[0];
-
-  if (nameFromSearchParams != null) {
-    return nameFromSearchParams;
-  }
-
-  // Any image format is suitable
-  const FALLBACK_URL_TYPE = "image/png";
-
-  return [FALLBACK_URL_TYPE, `${nanoid()}.png`] as const;
+  return getImageNameAndType(file)[1];
 };
 
 const bufferToHex = (buffer: ArrayBuffer) => {
@@ -78,28 +155,13 @@ export const getSha256HashOfFile = async (file: File) => {
   return bufferToHex(hashBuffer);
 };
 
-export const getMimeType = (file: File | URL) => {
-  if (file instanceof File) {
-    return file.type;
-  }
-
-  return extractImageNameAndMimeTypeFromUrl(file)[0];
-};
-
-export const getFileName = (file: File | URL) => {
-  if (file instanceof File) {
-    return file.name;
-  }
-
-  return extractImageNameAndMimeTypeFromUrl(file)[1];
-};
-
 export const uploadingFileDataToAsset = (
   fileData: UploadingFileData
 ): Asset => {
-  const mimeType = getMimeType(
-    fileData.source === "file" ? fileData.file : new URL(fileData.url)
-  );
+  const mimeType =
+    getImageType(
+      fileData.source === "file" ? fileData.file : new URL(fileData.url)
+    ) ?? "image/png";
   const format = mimeType.split("/")[1];
 
   if (mimeType.startsWith("image/")) {

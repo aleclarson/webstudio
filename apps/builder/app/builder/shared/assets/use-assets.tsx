@@ -22,8 +22,9 @@ import {
 } from "~/shared/nano-states";
 import { serverSyncStore } from "~/shared/sync";
 import {
-  getFileName,
-  getMimeType,
+  getImageExtensionForMimeType,
+  getImageName,
+  getImageType,
   getSha256Hash,
   getSha256HashOfFile,
   uploadingFileDataToAsset,
@@ -31,6 +32,7 @@ import {
 import { Image, wsImageLoader } from "@webstudio-is/image";
 import invariant from "tiny-invariant";
 import { fetch } from "~/shared/fetch.client";
+import { nanoid } from "nanoid";
 
 export const deleteAssets = (assetIds: Asset["id"][]) => {
   serverSyncStore.createTransaction([$assets], (assets) => {
@@ -159,8 +161,10 @@ const uploadAsset = async ({
   onError: (error: string) => void;
 }) => {
   try {
-    const mimeType = getMimeType(fileOrUrl);
-    const fileName = getFileName(fileOrUrl);
+    const mimeType = getImageType(fileOrUrl) ?? "image/png";
+    const fileName =
+      getImageName(fileOrUrl) ??
+      `${nanoid()}${getImageExtensionForMimeType(mimeType) ?? ".png"}`;
 
     const metaFormData = new FormData();
     metaFormData.append("projectId", projectId);
