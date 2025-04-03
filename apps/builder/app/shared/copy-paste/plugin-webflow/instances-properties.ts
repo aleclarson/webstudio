@@ -58,17 +58,20 @@ const toFragment = (
     }
   };
 
+  const customLabel = wfNode._label;
   const addInstance = (
     component: Instance["component"],
     children: Instance["children"] = [],
-    label?: string
+    defaultLabel?: string
   ) => {
     fragment.instances.push({
       id: instanceId,
       type: "instance",
       component,
       children,
-      ...(label ? { label } : undefined),
+      ...((customLabel || defaultLabel) && {
+        label: customLabel || defaultLabel,
+      }),
     });
   };
 

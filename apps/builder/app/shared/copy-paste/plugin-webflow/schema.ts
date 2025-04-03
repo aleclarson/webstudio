@@ -33,8 +33,19 @@ const WfNodeData = z.object({
     .optional(),
 });
 
-const WfBaseNode = z.object({
+const coreNodeProperties = {
   _id: z.string(),
+  /**
+   * A layer name.
+   *
+   * @note This is never actually set by Webflow, but was added to support a better UX for custom
+   * tooling that outputs Webflow data.
+   */
+  _label: z.string().optional(),
+};
+
+const WfBaseNode = z.object({
+  ...coreNodeProperties,
   tag: z.string(),
   children: z.array(z.string()),
   classes: z.array(z.string()),
@@ -43,7 +54,7 @@ const WfBaseNode = z.object({
 });
 
 const WfTextNode = z.object({
-  _id: z.string(),
+  ...coreNodeProperties,
   v: z.string(),
   text: z.boolean(),
 });
