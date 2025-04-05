@@ -289,7 +289,20 @@ export const EditorContent = ({
 
   useEffect(() => {
     if (autoFocus) {
-      viewRef.current?.focus();
+      // Select all text when editor is focused
+      const view = viewRef.current;
+      if (!view) {
+        return;
+      }
+      view.focus();
+      requestAnimationFrame(() => {
+        const doc = view.state.doc;
+        const transaction = view.state.update({
+          selection: { anchor: 0, head: doc.length },
+          scrollIntoView: true,
+        });
+        view.dispatch(transaction);
+      });
     }
   }, [autoFocus]);
 
