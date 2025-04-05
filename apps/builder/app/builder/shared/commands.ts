@@ -13,6 +13,10 @@ import {
   $isContentMode,
   $registeredComponentMetas,
   findBlockSelector,
+  $selectedOrLastStyleSourceSelector,
+  $styles,
+  $styleSourceSelections,
+  $selectedBreakpoint,
 } from "~/shared/nano-states";
 import {
   $breakpointsMenuView,
@@ -35,7 +39,11 @@ import {
   setActiveSidebarPanel,
   toggleActiveSidebarPanel,
 } from "./nano-states";
-import { $selectedInstancePath, selectInstance } from "~/shared/awareness";
+import {
+  $selectedInstance,
+  $selectedInstancePath,
+  selectInstance,
+} from "~/shared/awareness";
 import { openCommandPanel } from "../features/command-panel";
 import { builderApi } from "~/shared/builder-api";
 import {
@@ -46,6 +54,8 @@ import {
 import { getSetting, setSetting } from "./client-settings";
 import { findAvailableVariables } from "~/shared/data-variables";
 import { atom } from "nanostores";
+import type { StyleValue } from "@webstudio-is/css-engine";
+import { createBatchUpdate } from "../features/style-panel/shared/use-style-data";
 
 export const $styleSourceInputElement = atom<HTMLInputElement | undefined>();
 
@@ -141,6 +151,77 @@ export const deleteSelectedInstance = () => {
       selectInstance(newSelectedInstanceSelector);
     }
   });
+};
+
+export const convertPositionToPadding = () => {
+  const batch = createBatchUpdate();
+
+  // Get the position properties we want to convert
+  const positionProps = ["top", "right", "bottom", "left"] as const;
+  const paddingProps = [
+    "padding-top",
+    "padding-right",
+    "padding-bottom",
+    "padding-left",
+  ] as const;
+
+  // Get the current styles for the selected instance
+  const selectedInstance = $selectedInstance.get();
+  if (!selectedInstance) {
+    return;
+  }
+
+  // Get all styles for the instance
+  const styles = $styles.get();
+  const styleSourceSelections = $styleSourceSelections.get();
+  const selectedBreakpoint = $selectedBreakpoint.get();
+  const styleSourceSelector = $selectedOrLastStyleSourceSelector.get();
+
+  if (!selectedBreakpoint || !styleSourceSelector) {
+    return;
+  }
+
+  // Get the instance's style source IDs
+  const instanceStyleSourceIds = new Set(
+    styleSourceSelections.get(selectedInstance.id)?.values
+  );
+
+  // Find the current position values
+  const positionValues = new Map<string, StyleValue>();
+
+  for (const styleDecl of styles.values()) {
+    if (
+      instanceStyleSourceIds.has(styleDecl.styleSourceId) &&
+      styleDecl.breakpointId === selectedBreakpoint.id &&
+      positionProps.includes(
+        styleDecl.property as (typeof positionProps)[number]
+      )
+    ) {
+      positionValues.set(styleDecl.property, styleDecl.value);
+    }
+  }
+
+  // Only proceed if we found any position values
+  if (positionValues.size === 0) {
+    return;
+  }
+
+  // Convert position to padding
+  positionProps.forEach((prop, index) => {
+    const value = positionValues.get(prop);
+    if (value) {
+      // Set the corresponding padding
+      batch.setProperty(paddingProps[index])(value);
+      // Delete the position property
+      batch.deleteProperty(prop);
+    }
+  });
+
+  // Delete the position property
+  batch.deleteProperty("position");
+
+  // Apply all changes
+  batch.publish();
 };
 
 export const wrapIn = (component: string) => {
@@ -472,6 +553,11 @@ export const { emitCommand, subscribeCommands } = createCommandsEmitter({
       },
     },
     */
+
+    {
+      name: "convertPositionToPadding",
+      handler: convertPositionToPadding,
+    },
 
     {
       name: "deleteInstanceBuilder",
