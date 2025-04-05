@@ -22,18 +22,20 @@ export const $canvasScrollbarSize = atom<
   { width: number; height: number } | undefined
 >();
 
+export const $zoom = atom<number>(1);
+
 export const $scale = computed(
-  [$canvasWidth, $workspaceRect],
-  (canvasWidth, workspaceRect) => {
+  [$canvasWidth, $workspaceRect, $zoom],
+  (canvasWidth, workspaceRect, zoom) => {
     if (
       canvasWidth === undefined ||
       workspaceRect === undefined ||
       canvasWidth <= workspaceRect.width
     ) {
-      return 100;
+      return 100 * zoom;
     }
     return Number.parseFloat(
-      ((workspaceRect.width / canvasWidth) * 100).toFixed(2)
+      ((workspaceRect.width / canvasWidth) * 100 * zoom).toFixed(2)
     );
   }
 );

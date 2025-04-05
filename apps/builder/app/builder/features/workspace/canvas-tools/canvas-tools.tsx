@@ -17,7 +17,7 @@ import { Label } from "./outline/label";
 import { Outline } from "./outline/outline";
 import { useSubscribeDragAndDropState } from "./use-subscribe-drag-drop-state";
 import { applyScale } from "./outline";
-import { $clampingRect, $scale } from "~/builder/shared/nano-states";
+import { $clampingRect, $scale, $zoom } from "~/builder/shared/nano-states";
 import { BlockChildHoveredInstanceOutline } from "./outline/block-instance-outline";
 import { TextEditorContextMenu } from "./block-editor-context-menu";
 

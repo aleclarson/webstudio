@@ -5,6 +5,7 @@ import {
   $canvasWidth,
   $scale,
   $workspaceRect,
+  $zoom,
 } from "~/builder/shared/nano-states";
 import { $textEditingInstanceSelector } from "~/shared/nano-states";
 import { CanvasTools } from "./canvas-tools";
@@ -50,6 +51,7 @@ const useMeasureWorkspace = () => {
 };
 
 const getCanvasStyle = (
+  zoom: number,
   scale: number,
   workspaceRect?: DOMRect,
   canvasWidth?: number
@@ -62,31 +64,36 @@ const getCanvasStyle = (
   }
 
   return {
-    width: canvasWidth ?? "100%",
-    height: canvasHeight ?? "100%",
+    width: canvasWidth != null ? canvasWidth / zoom : 100 + "%",
+    height: canvasHeight != null ? canvasHeight : 100 + "%",
     left: "50%",
     transform: `scale(${scale}%) translateX(-50%)`,
+    // transformOrigin: "top center",
   };
 };
 
 const useCanvasStyle = () => {
+  const zoom = useStore($zoom);
   const scale = useStore($scale);
   const workspaceRect = useStore($workspaceRect);
   const canvasWidth = useStore($canvasWidth);
 
-  return getCanvasStyle(scale, workspaceRect, canvasWidth);
+  return getCanvasStyle(zoom, scale, workspaceRect, canvasWidth);
 };
 
 const useOutlineStyle = () => {
+  const zoom = useStore($zoom);
   const scale = useStore($scale);
   const workspaceRect = useStore($workspaceRect);
   const canvasWidth = useStore($canvasWidth);
-  const style = getCanvasStyle(100, workspaceRect, canvasWidth);
+  const style = getCanvasStyle(zoom, 100, workspaceRect, canvasWidth);
 
   return {
     ...style,
     width:
-      canvasWidth === undefined ? "100%" : (canvasWidth ?? 0) * (scale / 100),
+      canvasWidth === undefined
+        ? "100%"
+        : (canvasWidth ?? 0) * (scale / zoom / 100),
   } as const;
 };
 

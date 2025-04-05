@@ -30,6 +30,8 @@ import { $publisher } from "~/shared/pubsub";
 import {
   $activeInspectorPanel,
   $publishDialog,
+  $scale,
+  $zoom,
   setActiveSidebarPanel,
   toggleActiveSidebarPanel,
 } from "./nano-states";
@@ -328,6 +330,54 @@ export const { emitCommand, subscribeCommands } = createCommandsEmitter({
           return;
         }
         toggleActiveSidebarPanel("components");
+      },
+      disableOnInputLikeControls: true,
+    },
+    {
+      name: "zoomIn",
+      defaultHotkeys: ["="],
+      handler: () => {
+        $zoom.set($zoom.get() + 0.15);
+      },
+      disableOnInputLikeControls: true,
+    },
+    {
+      name: "zoomOut",
+      defaultHotkeys: ["-"],
+      handler: () => {
+        $zoom.set($zoom.get() - 0.15);
+      },
+      disableOnInputLikeControls: true,
+    },
+    {
+      name: "resetZoom",
+      defaultHotkeys: ["0"],
+      handler: () => {
+        $zoom.set(1);
+      },
+      disableOnInputLikeControls: true,
+    },
+    {
+      name: "zoomInSlightly",
+      defaultHotkeys: ["ctrl+="],
+      handler: () => {
+        $zoom.set($zoom.get() + 0.05);
+      },
+      disableOnInputLikeControls: true,
+    },
+    {
+      name: "zoomOutSlightly",
+      defaultHotkeys: ["ctrl+-"],
+      handler: () => {
+        $zoom.set($zoom.get() - 0.05);
+      },
+      disableOnInputLikeControls: true,
+    },
+    {
+      name: "zoomToActualSize",
+      defaultHotkeys: ["ctrl+0"],
+      handler: () => {
+        $zoom.set($zoom.get() * (100 / $scale.get()));
       },
       disableOnInputLikeControls: true,
     },
