@@ -236,7 +236,22 @@ export const Canvas = () => {
     registerComponentLibrary({
       components: baseComponents,
       metas: baseComponentMetas,
-      propsMetas: baseComponentPropsMetas,
+      propsMetas: Object.fromEntries(
+        Object.entries(baseComponentPropsMetas).map(
+          ([component, propsMeta]) => {
+            propsMeta.props.comment = {
+              type: "string",
+              control: "text",
+              required: false,
+              description:
+                "Describe the behavior of this layer and optionally its children.",
+            };
+            propsMeta.initialProps ??= [];
+            propsMeta.initialProps.push("comment");
+            return [component, propsMeta];
+          }
+        )
+      ),
       hooks: baseComponentHooks,
       templates: baseComponentTemplates,
     });
