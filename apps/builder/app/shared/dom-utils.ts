@@ -27,8 +27,14 @@ export const getInstanceSelectorFromElement = (element: Element) => {
 export const getElementByInstanceSelector = (
   instanceSelector: InstanceSelector | Readonly<InstanceSelector>
 ) => {
+  const context =
+    document.location.pathname !== "/canvas"
+      ? (document.querySelector('iframe[src="/canvas"]') as HTMLIFrameElement)
+          ?.contentDocument
+      : document;
+
   return (
-    document.querySelector<HTMLElement>(
+    context?.querySelector<HTMLElement>(
       `[${selectorIdAttribute}="${instanceSelector.join(",")}"]`
     ) ?? undefined
   );

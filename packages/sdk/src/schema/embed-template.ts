@@ -80,7 +80,7 @@ const EmbedTemplateStyleDeclRaw = z.object({
   // State selector, e.g. :hover
   state: z.optional(z.string()),
   property: z.string(),
-  value: StyleValue,
+  value: StyleValue.or(z.null()),
 });
 
 export type EmbedTemplateStyleDecl = Simplify<

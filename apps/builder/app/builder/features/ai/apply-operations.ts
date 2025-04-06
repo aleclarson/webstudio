@@ -156,13 +156,18 @@ const applyStylesByOp = (operation: operations.editStylesWsOperation) => {
           });
         }
 
-        for (const embedStyleDecl of newStyles) {
+        for (const { state, property, value } of newStyles) {
           const styleDecl = {
-            ...embedStyleDecl,
             breakpointId: baseBreakpoint?.id,
             styleSourceId,
+            state,
+            property,
           };
-          styles.set(getStyleDeclKey(styleDecl), styleDecl);
+          if (value !== null) {
+            styles.set(getStyleDeclKey(styleDecl), { ...styleDecl, value });
+          } else {
+            styles.delete(getStyleDeclKey(styleDecl));
+          }
         }
       }
     }

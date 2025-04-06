@@ -17,6 +17,7 @@ import {
   $styles,
   $styleSourceSelections,
   $selectedBreakpoint,
+  $selectedInstanceSelector,
 } from "~/shared/nano-states";
 import {
   $breakpointsMenuView,
@@ -56,6 +57,10 @@ import { findAvailableVariables } from "~/shared/data-variables";
 import { atom } from "nanostores";
 import type { StyleValue } from "@webstudio-is/css-engine";
 import { createBatchUpdate } from "../features/style-panel/shared/use-style-data";
+import { applyOperations } from "../features/ai/apply-operations";
+import { getInstanceStyleDecl } from "../features/style-panel/shared/model";
+import { getElementByInstanceSelector } from "~/shared/dom-utils";
+import type { operations } from "@webstudio-is/ai";
 
 export const $styleSourceInputElement = atom<HTMLInputElement | undefined>();
 
@@ -224,6 +229,103 @@ export const convertPositionToProperty = (
 
   // Apply all changes
   batch.publish();
+};
+
+export const convertToAbsolutePosition = () => {
+  const selectedInstance = $selectedInstance.get();
+  const selectedInstanceSelector = $selectedInstanceSelector.get();
+
+  if (!selectedInstance || !selectedInstanceSelector) {
+    return;
+  }
+
+  const position = getInstanceStyleDecl("position", selectedInstanceSelector);
+  if (
+    position.usedValue.type === "keyword" &&
+    position.usedValue.value === "absolute"
+  ) {
+    return;
+  }
+
+  // Ensure parent instance isn't using `position: static`
+  const selectedInstancePath = $selectedInstancePath.get()!;
+  const parent = selectedInstancePath[1];
+
+  let parentRect: DOMRect | undefined;
+  let isParentStatic = false;
+
+  if (parent) {
+    const parentElement = getElementByInstanceSelector(parent.instanceSelector);
+    parentRect = parentElement?.getBoundingClientRect();
+
+    // Change parent position to relative if it's static
+    const parentPosition = getInstanceStyleDecl(
+      "position",
+      parent.instanceSelector
+    );
+    isParentStatic =
+      parentPosition.usedValue.type === "keyword" &&
+      parentPosition.usedValue.value === "static";
+  }
+
+  const instanceElement = getElementByInstanceSelector(
+    selectedInstanceSelector
+  );
+
+  if (!instanceElement) {
+    return;
+  }
+
+  const operations: operations.WsOperations = [];
+
+  if (isParentStatic) {
+    operations.push({
+      operation: "applyStyles",
+      instanceIds: [parent.instance.id],
+      styles: [
+        {
+          property: "position",
+          value: { type: "keyword", value: "relative" },
+        },
+      ],
+    });
+  }
+
+  const rect = instanceElement.getBoundingClientRect();
+
+  operations.push({
+    operation: "applyStyles",
+    instanceIds: [selectedInstance.id],
+    styles: [
+      {
+        property: "position",
+        value: { type: "keyword", value: "absolute" },
+      },
+      {
+        property: "top",
+        value: {
+          type: "unit",
+          value: rect.top - (parentRect?.top ?? 0),
+          unit: "px",
+        },
+      },
+      {
+        property: "left",
+        value: {
+          type: "unit",
+          value: rect.left - (parentRect?.left ?? 0),
+          unit: "px",
+        },
+      },
+      // Unset margin properties.
+      { property: "marginTop", value: null },
+      { property: "marginLeft", value: null },
+      { property: "marginRight", value: null },
+      { property: "marginBottom", value: null },
+    ],
+  });
+
+  applyOperations(operations);
 };
 
 export const wrapIn = (component: string) => {
@@ -563,6 +665,10 @@ export const { emitCommand, subscribeCommands } = createCommandsEmitter({
     {
       name: "convertPositionToMargin",
       handler: () => convertPositionToProperty("margin"),
+    },
+    {
+      name: "convertToAbsolutePosition",
+      handler: convertToAbsolutePosition,
     },
 
     {
