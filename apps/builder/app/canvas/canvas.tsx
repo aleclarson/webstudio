@@ -1,7 +1,12 @@
 import { useMemo, useEffect, useState, useLayoutEffect, useRef } from "react";
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 import { useStore } from "@nanostores/react";
-import { type Instances, coreMetas, corePropsMetas } from "@webstudio-is/sdk";
+import {
+  type Instances,
+  PropMeta,
+  coreMetas,
+  corePropsMetas,
+} from "@webstudio-is/sdk";
 import { coreTemplates } from "@webstudio-is/sdk/core-templates";
 import type { Components } from "@webstudio-is/react-sdk";
 import { wsImageLoader } from "@webstudio-is/image";
@@ -239,16 +244,31 @@ export const Canvas = () => {
       propsMetas: Object.fromEntries(
         Object.entries(baseComponentPropsMetas).map(
           ([component, propsMeta]) => {
-            propsMeta.props.comment = {
-              type: "string",
-              control: "text",
-              required: false,
-              description:
-                "Describe the behavior of this layer and optionally its children.",
-              maxRows: 20,
+            const globalProps: Record<string, PropMeta> = {
+              comment: {
+                type: "string",
+                control: "text",
+                required: false,
+                description:
+                  "Describe the behavior of this layer and optionally its children.",
+                maxRows: 20,
+              },
+              callsFunctionOnClick: {
+                type: "boolean",
+                control: "boolean",
+                required: false,
+                description:
+                  "When true, this layer calls a component prop when clicked.",
+              },
             };
-            propsMeta.initialProps ??= [];
-            propsMeta.initialProps.push("comment");
+
+            Object.assign(propsMeta.props, globalProps);
+
+            const initialProps = (propsMeta.initialProps ??= []);
+            Object.keys(globalProps).forEach((key) => {
+              initialProps.push(key);
+            });
+
             return [component, propsMeta];
           }
         )
