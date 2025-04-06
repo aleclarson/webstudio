@@ -153,16 +153,18 @@ export const deleteSelectedInstance = () => {
   });
 };
 
-export const convertPositionToPadding = () => {
+export const convertPositionToProperty = (
+  targetProperty: "padding" | "margin"
+) => {
   const batch = createBatchUpdate();
 
   // Get the position properties we want to convert
   const positionProps = ["top", "right", "bottom", "left"] as const;
-  const paddingProps = [
-    "padding-top",
-    "padding-right",
-    "padding-bottom",
-    "padding-left",
+  const targetProps = [
+    `${targetProperty}-top`,
+    `${targetProperty}-right`,
+    `${targetProperty}-bottom`,
+    `${targetProperty}-left`,
   ] as const;
 
   // Get the current styles for the selected instance
@@ -206,12 +208,12 @@ export const convertPositionToPadding = () => {
     return;
   }
 
-  // Convert position to padding
+  // Convert position to target property
   positionProps.forEach((prop, index) => {
     const value = positionValues.get(prop);
     if (value) {
-      // Set the corresponding padding
-      batch.setProperty(paddingProps[index])(value);
+      // Set the corresponding target property
+      batch.setProperty(targetProps[index])(value);
       // Delete the position property
       batch.deleteProperty(prop);
     }
@@ -556,7 +558,11 @@ export const { emitCommand, subscribeCommands } = createCommandsEmitter({
 
     {
       name: "convertPositionToPadding",
-      handler: convertPositionToPadding,
+      handler: () => convertPositionToProperty("padding"),
+    },
+    {
+      name: "convertPositionToMargin",
+      handler: () => convertPositionToProperty("margin"),
     },
 
     {
