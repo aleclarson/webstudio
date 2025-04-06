@@ -245,6 +245,7 @@ export const Canvas = () => {
               required: false,
               description:
                 "Describe the behavior of this layer and optionally its children.",
+              maxRows: 20,
             };
             propsMeta.initialProps ??= [];
             propsMeta.initialProps.push("comment");

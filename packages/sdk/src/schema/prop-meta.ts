@@ -40,6 +40,7 @@ const Text = z.object({
    * In line with Storybook team's plan: https://github.com/storybookjs/storybook/issues/21100
    */
   rows: z.number().optional(),
+  maxRows: z.number().optional(),
 });
 
 const Resource = z.object({

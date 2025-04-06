@@ -48,7 +48,7 @@ export const TextControl = ({
         value={localValue.value}
         rows={meta.rows ?? 1}
         // Set maxRows to 3 when meta.rows is undefined or equal to 1, otherwise set it to rows * 2
-        maxRows={Math.max(2 * (meta.rows ?? 1), 3)}
+        maxRows={meta.maxRows ?? Math.max(2 * (meta.rows ?? 1), 3)}
         onChange={localValue.set}
         onBlur={localValue.save}
         onSubmit={localValue.save}
