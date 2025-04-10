@@ -245,6 +245,14 @@ export const Canvas = () => {
         Object.entries(baseComponentPropsMetas).map(
           ([component, propsMeta]) => {
             const globalProps: Record<string, PropMeta> = {
+              componentName: {
+                type: "string",
+                control: "text",
+                required: false,
+                description:
+                  "Define a component boundary with a “pascal case” name like MyComponent.",
+                maxRows: 1,
+              },
               comment: {
                 type: "string",
                 control: "text",
